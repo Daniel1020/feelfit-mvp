@@ -1,0 +1,6 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { background: #F6F1EB; color: #111; }
+img { display:block; }
