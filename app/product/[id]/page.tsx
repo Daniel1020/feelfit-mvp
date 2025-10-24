@@ -27,7 +27,7 @@ async function fetchProduct(id: string): Promise<ProductRow> {
   // 单行产品（含主图）
   const { data: product, error: productError } = await supabase
     .from('feelfit_products')
-    .select('id, brand_name, name, price_cents, primary_image_url')
+    .select('id, brand_name, name, price_cents, primary_image_url,product_source_link')
     .eq('id', id)
     .single();
 
@@ -49,7 +49,7 @@ async function fetchProduct(id: string): Promise<ProductRow> {
 async function fetchMore(brandName: string, excludeId: string): Promise<MoreItem[]> {
   const { data, error } = await supabase
     .from('feelfit_products')
-    .select('id, name, price_cents, primary_image_url')
+    .select('id, name, price_cents, primary_image_url,product_source_link')
     .eq('brand_name', brandName)
     .neq('id', excludeId)
     .limit(8);
@@ -144,13 +144,17 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           {more.slice(0, 2).map((it: MoreItem) => (
             <button key={it.id} onClick={() => swapHero(it.id)} className="text-left">
               <div className="w-full overflow-hidden rounded-lg bg-[#eee]">
-                <Image
-                  src={it.primary_image_url}    // 外部 URL
-                  alt={it.name}
-                  width={720}
-                  height={900}
-                  className="w-full h-[180px] object-cover"
-                />
+                {it.primary_image_url ? (
+                  <Image
+                    src={it.primary_image_url}
+                    alt={it.name}
+                    width={720}
+                    height={900}
+                    className="w-full h-[180px] object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-[180px] bg-neutral-200" />
+                )}
               </div>
               <div className="mt-2 text-sm">{it.name}</div>
               <div className="text-sm text-neutral-600">
@@ -184,8 +188,17 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           if (Array.isArray(data?.suggested) && data.suggested.length) setMore(data.suggested);
         }}
       />
-
-      {/* Decision bar */}
+      <DecisionBar
+  onShop={() => {
+    const url = (product as any)?.product_source_link;
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } else {
+      const q = encodeURIComponent(`${product.brand_name} ${product.name}`);
+      window.open(`https://www.google.com/search?q=${q}`, '_blank', 'noopener,noreferrer');
+    }
+  }}
+/>
       <AnimatePresence>
         {showBar && <DecisionBar onShop={() => alert('Redirect to brand shop…')} />}
       </AnimatePresence>
