@@ -1,9 +1,8 @@
 'use client';
-
 export const dynamic = 'force-dynamic';
+
 import React from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
 
 type Product = {
   id: string;
@@ -13,23 +12,22 @@ type Product = {
   primary_image_url: string | null;
 };
 
-async function fetchProducts(): Promise<Product[]> {
-  const { data, error } = await supabase
-    .from('feelfit_products')
-    .select('id, name, brand_name, price_cents, primary_image_url');
-  if (error) throw error;
-  return (data ?? []) as Product[];
-}
-
 export default function HomePage() {
   const [items, setItems] = React.useState<Product[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [err, setErr] = React.useState<string | null>(null);
+  const [count, setCount] = React.useState<number>(0);
 
   React.useEffect(() => {
     (async () => {
       try {
-        const rows = await fetchProducts();
-        setItems(rows);
+        const res = await fetch('/api/products', { cache: 'no-store' });
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.error || 'load error');
+        setItems(json.items);
+        setCount(json.count ?? json.items?.length ?? 0);
+      } catch (e: any) {
+        setErr(e?.message || 'load error');
       } finally {
         setLoading(false);
       }
@@ -37,14 +35,19 @@ export default function HomePage() {
   }, []);
 
   if (loading) return <main className="p-6">Loading…</main>;
+  if (err) return <main className="p-6 text-red-600">Home load error: {err}</main>;
 
   return (
     <main className="min-h-screen bg-[#F5F1EC] p-4">
       <h1 className="text-2xl font-semibold mb-3">
-       🪞 FeelFit Collection — from app/page.tsx
+        🪞 FeelFit Collection — from app/page.tsx
       </h1>
+
+      {/* Debug badge so you can verify actual count */}
+      <div className="text-xs text-neutral-500 mb-2">Showing {count} products</div>
+
       <div className="grid grid-cols-2 gap-3">
-        {items.map((p) => (
+        {items.map((p: Product) => (
           <Link key={p.id} href={`/product/${p.id}`} className="block">
             <div className="rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-md transition">
               {p.primary_image_url ? (
