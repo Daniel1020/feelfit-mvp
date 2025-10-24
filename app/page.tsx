@@ -1,5 +1,6 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
 import React from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -39,8 +40,8 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen bg-[#F5F1EC] p-4">
-      <h1 className="text-2xl font-semibold mb-3 tracking-tight">
-        🪞 FeelFit Collection
+      <h1 className="text-2xl font-semibold mb-3">
+       🪞 FeelFit Collection — from app/page.tsx
       </h1>
       <div className="grid grid-cols-2 gap-3">
         {items.map((p) => (
