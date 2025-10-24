@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
+import { AnimatePresence, motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import FigmaProductShell from '@/components/FigmaProductShell';
-// 如果你的 InputOrb 组件已经存在，继续保留（放在页面底部渲染即可）
 import InputOrb from '@/components/InputOrb';
 
 type Product = {
@@ -21,23 +21,25 @@ type ImageRow = {
   sort_order: number | null;
 };
 
-async function fetchProduct(id: string) {
-  // 读取主产品信息
+async function fetchProduct(id: string): Promise<{
+  product: Product;
+  hero: string | null;
+  images: ImageRow[];
+}> {
+  // 1) product
   const { data: product, error: pe } = await supabase
     .from('feelfit_products')
     .select('id, name, brand_name, price_cents, primary_image_url, product_source_link')
     .eq('id', id)
     .single();
-
   if (pe) throw pe;
 
-  // 读取多图（如有）
+  // 2) images (may be empty)
   const { data: images, error: ie } = await supabase
     .from('feelfit_product_images')
     .select('image_url, sort_order')
     .eq('product_id', id)
     .order('sort_order', { ascending: true });
-
   if (ie) throw ie;
 
   const hero =
@@ -50,32 +52,70 @@ async function fetchProduct(id: string) {
 
 export default function ProductPage({ params }: { params: { id: string } }) {
   const router = useRouter();
+
   const [loading, setLoading] = React.useState(true);
+  const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+
   const [product, setProduct] = React.useState<Product | null>(null);
   const [hero, setHero] = React.useState<string | null>(null);
+  const [images, setImages] = React.useState<ImageRow[]>([]);
+
   const [showInput, setShowInput] = React.useState(false);
 
   React.useEffect(() => {
+    let mounted = true;
     (async () => {
+      setLoading(true);
+      setErrorMsg(null);
       try {
-        setLoading(true);
-        const { product, hero } = await fetchProduct(params.id);
+        const { product, hero, images } = await fetchProduct(params.id);
+        if (!mounted) return;
         setProduct(product);
         setHero(hero);
-      } catch (e) {
-        console.error(e);
+        setImages(images);
+      } catch (err: any) {
+        console.error(err);
+        if (!mounted) return;
+        setErrorMsg(err?.message || 'Failed to load product');
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     })();
+    return () => {
+      mounted = false;
+    };
   }, [params.id]);
 
-  if (loading) return <main className="p-6">Loading…</main>;
-  if (!product) return <main className="p-6">Not found.</main>;
+  // simple skeleton
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[#F5F1EC] p-6">
+        <div className="h-10 w-10 rounded-full bg-black/10 animate-pulse mb-4" />
+        <div className="h-[360px] rounded-2xl bg-black/10 animate-pulse mb-4" />
+        <div className="h-6 w-2/3 bg-black/10 animate-pulse mb-2" />
+        <div className="h-5 w-1/3 bg-black/10 animate-pulse" />
+      </main>
+    );
+  }
+
+  if (errorMsg || !product) {
+    return (
+      <main className="min-h-screen bg-[#F5F1EC] p-6">
+        <button
+          onClick={() => router.back()}
+          className="mb-4 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center"
+          aria-label="Back"
+        >
+          ×
+        </button>
+        <div className="text-sm text-red-600">{errorMsg ?? 'Product not found'}</div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#F5F1EC] relative">
-      {/* 顶部左上角返回 */}
+      {/* Close/back */}
       <button
         onClick={() => router.back()}
         className="absolute left-3 top-3 z-50 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center"
@@ -84,9 +124,9 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         ×
       </button>
 
-      {/* Figma 外观的壳（由 props 驱动） */}
+      {/* Figma-look shell with real data */}
       <FigmaProductShell
-        imageUrl={hero}
+        imageUrl={hero ?? product.primary_image_url}
         brand={product.brand_name ?? '—'}
         name={product.name}
         priceCents={product.price_cents ?? null}
@@ -97,7 +137,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           window.open(url, '_blank', 'noopener,noreferrer');
         }}
         onSave={() => {
-          // MVP 先打个日志；后续可写入 supabase.user_saves
+          // MVP: log; later: supabase.from('user_saves').insert(...)
           console.log('save', product.id);
         }}
         onCollect={() => {
@@ -119,28 +159,43 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         onOpenInput={() => setShowInput(true)}
       />
 
-      {/* InputOrb：保持你原来的组件即可，这里用显隐控制 */}
-      {/* 你也可以改成弹窗 / 抽屉样式；onSubmit 调用 /api/styletalk 保持不变 */}
-      {showInput && (
-        <div className="fixed inset-0 z-[60] bg-black/30 backdrop-blur-sm">
-          <div className="absolute inset-x-0 bottom-0">
-            <InputOrb
-              onClose={() => setShowInput(false)}
-              onSubmit={async (text: string) => {
-                // 例子：把当前产品上下文传到后端
-                const res = await fetch('/api/styletalk', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ text, productContextId: product.id }),
-                });
-                const data = await res.json();
-                console.log('styletalk result', data);
-                setShowInput(false);
-              }}
-            />
-          </div>
-        </div>
-      )}
+      {/* Animated InputOrb overlay */}
+      <AnimatePresence>
+        {showInput && (
+          <motion.div
+            key="orb-overlay"
+            className="fixed inset-0 z-[60] bg-black/30 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: { duration: 0.18 } }}
+            exit={{ opacity: 0, transition: { duration: 0.14 } }}
+            onClick={() => setShowInput(false)} // tap outside to close
+          >
+            <div
+              className="absolute inset-x-0 bottom-0"
+              onClick={(e) => e.stopPropagation()} // keep clicks inside
+            >
+              <InputOrb
+                onClose={() => setShowInput(false)}
+                onSubmit={async (text: string) => {
+                  // call your AI endpoint; replace body structure as needed
+                  const res = await fetch('/api/styletalk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      text,
+                      productContextId: product.id,
+                    }),
+                  });
+                  const data = await res.json();
+                  console.log('styletalk result', data);
+                  // TODO: if API returns suggested products, update a "more" grid here
+                  setShowInput(false);
+                }}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
