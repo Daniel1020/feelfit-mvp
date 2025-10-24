@@ -1,10 +1,15 @@
+// app/api/products/route.ts
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'; // avoid caching
 
 export async function GET() {
-  const { data, error } = await supabase.rpc('all_products_union');
+  const { data, error } = await supabase
+    .from('feelfit_products') // ✅ this path worked in your /api/debug-products
+    .select('id, name, brand_name, price_cents, primary_image_url')
+    .order('id', { ascending: true });
+
   if (error) {
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
