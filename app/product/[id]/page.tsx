@@ -138,27 +138,28 @@ export default function ProductPage({ params }: { params: { id: string } }) {
       {/* More preview (2 items fully visible) */}
       <section className="mt-4">
         <div className="grid grid-cols-2 gap-3">
-  {more.slice(0, 2).map((it, idx) => (
-    <button key={idx} onClick={() => swapHero(it.id)} className="text-left">
-      <div className="w-full overflow-hidden rounded-lg bg-[#eee]">
-        {it.primary_image_url ? (
-          <Image
-            src={it.primary_image_url}         // ✅ always a string here
-            alt={it.name}
-            width={720}
-            height={900}
-            className="w-full h-[180px] object-cover"
-          />
-        ) : (
-          <div className="w-full h-[180px] bg-neutral-200" />
-        )}
-      </div>
-      <div className="mt-2 text-sm line-clamp-2">{it.name}</div>
-      <div className="text-sm text-neutral-600">
-        {typeof it.price_cents === 'number' ? `$${(it.price_cents / 100).toFixed(2)}` : ''}
-      </div>
-    </button>
-  ))}
+
+        {more.slice(0, 2).map((it: MoreItem, idx) => (
+  <button key={it.id ?? idx} onClick={() => swapHero(it.id)} className="text-left">
+    <div className="w-full overflow-hidden rounded-lg bg-[#eee]">
+      {it.primary_image_url ? (
+        <Image
+          src={it.primary_image_url ?? ''} // ✅ safe fallback
+          alt={it.name}
+          width={720}
+          height={900}
+          className="w-full h-[180px] object-cover"
+        />
+      ) : (
+        <div className="w-full h-[180px] bg-neutral-200" />
+      )}
+    </div>
+    <div className="mt-2 text-sm line-clamp-2">{it.name}</div>
+    <div className="text-sm text-neutral-600">
+      {typeof it.price_cents === 'number' ? `$${(it.price_cents / 100).toFixed(2)}` : ''}
+    </div>
+  </button>
+))}
         </div>
       </section>
 
