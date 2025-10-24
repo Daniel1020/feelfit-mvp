@@ -13,6 +13,7 @@ type ProductRow = {
   name: string;
   price_cents: number | null;
   primary_image_url: string | null;
+  product_source_link: string | null;
   images?: { image_url: string; sort_order: number }[];
 };
 
@@ -21,6 +22,7 @@ type MoreItem = {
   name: string;
   price_cents: number | null;
   primary_image_url: string | null;
+  product_source_link?: string | null;
 };
 
 async function fetchProduct(id: string): Promise<ProductRow> {
@@ -169,9 +171,10 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           id: m.id,
           name: m.name,
           price_cents: m.price_cents,
-          image_url: m.primary_image_url, // 传 image_url 给组件
+          image_url: m.primary_image_url ?? '',
+          product_source_link: m.product_source_link ?? null,
         }))}
-        onPick={(it: { id: string }) => swapHero(it.id)}
+        onPick={(it) => swapHero(it.id)}
       />
 
       {/* Input orb */}
