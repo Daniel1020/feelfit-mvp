@@ -6,9 +6,8 @@ import { supabase } from '@/lib/supabase';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  // Query directly from the unified table
   const { data, error } = await supabase
-    .from('feelfit_products')
+    .from('feelfit_products_simple') // ✅ point to the flat view
     .select('id, name, brand_name, price_cents, primary_image_url, product_source_link')
     .order('id', { ascending: true });
 
