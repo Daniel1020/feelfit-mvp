@@ -2,8 +2,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import MoreWithOrb from "@/components/MoreWithOrb";
 
-/** Data from public.feelfit_products_api */
+/** Data shape from public.feelfit_products_api */
 type Product = {
   id: string;
   name: string;
@@ -18,7 +19,9 @@ const SB_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const SB_HEADERS = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` };
 
 async function getProduct(id: string): Promise<Product | null> {
-  const url = `${SB_URL}/rest/v1/feelfit_products_api?id=eq.${encodeURIComponent(id)}&select=*`;
+  const url =
+    `${SB_URL}/rest/v1/feelfit_products_api` +
+    `?id=eq.${encodeURIComponent(id)}&select=*`;
   const res = await fetch(url, { headers: SB_HEADERS, cache: "no-store" });
   if (!res.ok) throw new Error(`Product fetch failed: ${res.status}`);
   const rows = (await res.json()) as Product[];
@@ -96,72 +99,12 @@ export default async function ProductPage({ params }: { params: { id: string } }
         </div>
       )}
 
-      {/* More from this brand */}
-      {more.length > 0 && (
-        <section className="mt-8">
-          <div className="text-xs tracking-widest text-neutral-500 mb-3">
-            MORE FROM {product.brand_name?.toUpperCase() ?? "THIS BRAND"}
-          </div>
-
-          {/* Horizontal strip (first 4) */}
-          <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
-            {more.slice(0, 4).map((m) => (
-              <Link key={m.id} href={`/product/${m.id}`} className="min-w-[180px] w-[180px] shrink-0">
-                <div className="w-full h-[120px] rounded-lg overflow-hidden bg-neutral-100">
-                  {m.primary_image_url ? (
-                    <Image
-                      src={m.primary_image_url}
-                      alt={m.name}
-                      width={360}
-                      height={240}
-                      className="w-full h-full object-cover"
-                      unoptimized
-                    />
-                  ) : (
-                    <div className="w-full h-full grid place-items-center text-xs text-neutral-500">
-                      No image
-                    </div>
-                  )}
-                </div>
-                <div className="mt-2 text-sm line-clamp-2">{m.name}</div>
-                <div className="text-xs text-neutral-600">
-                  {m.price_dollars != null ? `$${m.price_dollars.toFixed(2)}` : ""}
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          {/* Small grid (rest) */}
-          {more.length > 4 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
-              {more.slice(4).map((m) => (
-                <Link key={m.id} href={`/product/${m.id}`} className="block">
-                  <div className="w-full h-[150px] rounded-lg overflow-hidden bg-neutral-100">
-                    {m.primary_image_url ? (
-                      <Image
-                        src={m.primary_image_url}
-                        alt={m.name}
-                        width={600}
-                        height={400}
-                        className="w-full h-full object-cover"
-                        unoptimized
-                      />
-                    ) : (
-                      <div className="w-full h-full grid place-items-center text-xs text-neutral-500">
-                        No image
-                      </div>
-                    )}
-                  </div>
-                  <div className="mt-2 text-sm line-clamp-2">{m.name}</div>
-                  <div className="text-xs text-neutral-600">
-                    {m.price_dollars != null ? `$${m.price_dollars.toFixed(2)}` : ""}
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
+      {/* Dynamic “More” + Input Orb */}
+      <MoreWithOrb
+        productId={product.id}
+        brandName={product.brand_name}
+        initial={more}
+      />
     </main>
   );
 }
