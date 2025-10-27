@@ -3,6 +3,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import MoreWithOrb from "@/components/MoreWithOrb";
+import dynamic from 'next/dynamic';
+const ChatOrb = dynamic(() => import('@/components/ChatOrb'), { ssr: false });
+
 
 /** Data shape from public.feelfit_products_api */
 type Product = {
@@ -105,6 +108,8 @@ export default async function ProductPage({ params }: { params: { id: string } }
         brandName={product.brand_name}
         initial={more}
       />
+
+     <ChatOrb productId={product.id} />
     </main>
   );
 }
